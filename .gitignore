@@ -1,0 +1,27 @@
+# OS files
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Editor folders
+.vscode/
+.idea/
+*.suo
+*.user
+
+# Logs
+*.log
+npm-debug.log*
+
+# Chrome extension build artifacts
+*.crx
+*.pem
+*.zip
+
+# Node (if you ever add a build step)
+node_modules/
+package-lock.json
+
+# Environment files
+.env
+.env.local
