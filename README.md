@@ -4,7 +4,7 @@ A beautiful Chrome extension that replaces your new tab with a customizable home
 A lightweight Chrome extension that transforms your boring new tab into a personalized dashboard.
 Features
 
-🖼️ Custom wallpaper — upload your own images or pick from presets
+🖼️ Custom wallpaper — upload your own images,live/video wallpapers or pick from presets
 🪟 Glassmorphism site tiles — transparent, blurred, dark cards
 🖱️ Free drag and drop — place tiles anywhere on the screen
 ↔️ Resizable tiles — drag to resize each tile independently
