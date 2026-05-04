@@ -12,6 +12,9 @@
     <div id="background-container"></div>
     <div id="background-overlay"></div>
 
+    <!-- Full-screen video wallpaper element (hidden by default) -->
+    <video id="video-wallpaper" autoplay muted loop playsinline></video>
+
     <div id="layout-container">
         <!-- Left side column: nav + boards -->
         <div id="main-column">
@@ -52,11 +55,22 @@
 
     <!-- Wallpaper Picker UI -->
     <div id="wallpaper-picker">
-        <div id="wallpaper-thumbnails" class="hidden"></div>
+        <div id="wallpaper-thumbnails" class="hidden">
+            <!-- Tab switcher -->
+            <div class="wp-tabs">
+                <button class="wp-tab-btn active" id="wp-tab-image">Images</button>
+                <button class="wp-tab-btn" id="wp-tab-live">&#9654; Live</button>
+            </div>
+            <!-- Image wallpapers section -->
+            <div id="wp-section-image" class="wp-section"></div>
+            <!-- Live / video wallpapers section -->
+            <div id="wp-section-live" class="wp-section" style="display:none;"></div>
+        </div>
         <button id="wallpaper-toggle" title="Change Wallpaper">
             <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect><circle cx="8.5" cy="8.5" r="1.5"></circle><polyline points="21 15 16 10 5 21"></polyline></svg>
         </button>
         <input type="file" id="wallpaper-upload-input" accept="image/*" style="display: none;">
+        <input type="file" id="video-upload-input" accept=".mp4,.webm" style="display: none;">
     </div>
 
     <script src="newtab.js"></script>

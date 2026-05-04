@@ -28,6 +28,18 @@ body {
     transition: background-image 0.5s ease-in-out;
 }
 
+/* Video wallpaper element */
+#video-wallpaper {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100vw;
+    height: 100vh;
+    object-fit: cover;
+    z-index: -2;
+    display: none;
+}
+
 #background-overlay {
     position: fixed;
     top: 0;
@@ -169,15 +181,56 @@ body {
 
 #wallpaper-thumbnails {
     display: flex;
+    flex-direction: column;
     background: rgba(0, 0, 0, 0.5);
     backdrop-filter: blur(10px);
     -webkit-backdrop-filter: blur(10px);
     padding: 12px;
     border-radius: 12px;
-    gap: 12px;
+    gap: 8px;
     border: 1px solid rgba(255, 255, 255, 0.1);
     transition: opacity 0.3s, transform 0.3s;
     transform-origin: bottom right;
+    max-width: 360px;
+}
+
+/* Tab switcher */
+.wp-tabs {
+    display: flex;
+    gap: 6px;
+    margin-bottom: 4px;
+}
+
+.wp-tab-btn {
+    flex: 1;
+    background: rgba(255, 255, 255, 0.08);
+    color: rgba(255, 255, 255, 0.7);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 6px;
+    padding: 5px 10px;
+    font-size: 12px;
+    font-weight: 500;
+    cursor: pointer;
+    transition: background 0.2s, color 0.2s;
+    letter-spacing: 0.3px;
+}
+
+.wp-tab-btn:hover {
+    background: rgba(255, 255, 255, 0.15);
+    color: white;
+}
+
+.wp-tab-btn.active {
+    background: rgba(255, 255, 255, 0.22);
+    color: white;
+    border-color: rgba(255, 255, 255, 0.35);
+}
+
+/* Wallpaper section rows */
+.wp-section {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
 }
 
 #wallpaper-thumbnails.hidden {
@@ -253,6 +306,22 @@ body {
     align-items: center;
     background-color: rgba(255, 255, 255, 0.1);
     color: white;
+}
+
+/* Play icon overlay for video thumbnails */
+.video-play-overlay {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    background: rgba(0, 0, 0, 0.35);
+    border-radius: 6px;
+    pointer-events: none;
+}
+
+.video-play-overlay svg {
+    filter: drop-shadow(0 1px 3px rgba(0,0,0,0.7));
 }
 
 /* Redesigned Tile */

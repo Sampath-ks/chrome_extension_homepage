@@ -22,14 +22,17 @@ function initWallpaper() {
     // IndexedDB wrapper
     function openDB() {
         return new Promise((resolve, reject) => {
-            console.log('IndexedDB: Opening WallpaperDB');
-            const request = indexedDB.open('WallpaperDB', 1);
+            console.log('IndexedDB: Opening WallpaperDB v2');
+            const request = indexedDB.open('WallpaperDB', 2);
             
             request.onupgradeneeded = (e) => {
-                console.log('IndexedDB: Upgrade needed, creating store');
+                console.log('IndexedDB: Upgrade needed, creating stores');
                 const db = e.target.result;
                 if (!db.objectStoreNames.contains('wallpapers')) {
                     db.createObjectStore('wallpapers', { keyPath: 'id', autoIncrement: true });
+                }
+                if (!db.objectStoreNames.contains('videoWallpapers')) {
+                    db.createObjectStore('videoWallpapers', { keyPath: 'id', autoIncrement: true });
                 }
             };
             
@@ -123,14 +126,139 @@ function initWallpaper() {
     }
 
     let userWallpapersDB = [];
+    let userVideoWallpapersDB = [];
+
+    // ── Video wallpaper IndexedDB helpers ────────────────────────────────
+
+    async function saveVideoWallpaper(blob) {
+        try {
+            console.log('IndexedDB: Generating video thumbnail');
+            const thumbnail = await new Promise((resolve, reject) => {
+                const tempVideo = document.createElement('video');
+                tempVideo.preload = 'metadata';
+                tempVideo.muted = true;
+                tempVideo.playsInline = true;
+
+                const objectUrl = URL.createObjectURL(blob);
+                tempVideo.src = objectUrl;
+
+                tempVideo.addEventListener('loadeddata', () => {
+                    tempVideo.currentTime = Math.min(1, tempVideo.duration / 2);
+                });
+
+                tempVideo.addEventListener('seeked', () => {
+                    const canvas = document.createElement('canvas');
+                    canvas.width = 60;
+                    canvas.height = 60;
+                    const ctx = canvas.getContext('2d');
+
+                    const vw = tempVideo.videoWidth;
+                    const vh = tempVideo.videoHeight;
+                    const size = Math.min(vw, vh);
+                    const sx = (vw - size) / 2;
+                    const sy = (vh - size) / 2;
+                    ctx.drawImage(tempVideo, sx, sy, size, size, 0, 0, 60, 60);
+
+                    URL.revokeObjectURL(objectUrl);
+                    resolve(canvas.toDataURL('image/jpeg', 0.7));
+                });
+
+                tempVideo.addEventListener('error', () => {
+                    URL.revokeObjectURL(objectUrl);
+                    reject(new Error('Failed to load video for thumbnail'));
+                });
+
+                tempVideo.load();
+            });
+
+            console.log('IndexedDB: Saving video wallpaper');
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('videoWallpapers', 'readwrite');
+                const store = tx.objectStore('videoWallpapers');
+                const request = store.add({
+                    blob: blob,
+                    thumbnail: thumbnail,
+                    timestamp: Date.now()
+                });
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        } catch (e) {
+            console.error('IndexedDB: Video save failed', e);
+        }
+    }
+
+    async function getAllVideoWallpapers() {
+        try {
+            console.log('IndexedDB: Getting all video wallpapers');
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('videoWallpapers', 'readonly');
+                const store = tx.objectStore('videoWallpapers');
+                const request = store.getAll();
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        } catch (e) {
+            console.error('IndexedDB: Get all videos failed', e);
+            return [];
+        }
+    }
+
+    async function getVideoWallpaper(id) {
+        try {
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('videoWallpapers', 'readonly');
+                const store = tx.objectStore('videoWallpapers');
+                const request = store.get(id);
+                request.onsuccess = () => resolve(request.result);
+                request.onerror = (e) => reject(e.target.error);
+            });
+        } catch (e) {
+            console.error('IndexedDB: Get video failed', e);
+            return null;
+        }
+    }
+
+    async function deleteVideoWallpaper(id) {
+        try {
+            console.log('IndexedDB: Deleting video wallpaper', id);
+            const db = await openDB();
+            return new Promise((resolve, reject) => {
+                const tx = db.transaction('videoWallpapers', 'readwrite');
+                const store = tx.objectStore('videoWallpapers');
+                const request = store.delete(id);
+                request.onsuccess = () => resolve();
+                request.onerror = (e) => reject(e.target.error);
+            });
+        } catch (e) {
+            console.error('IndexedDB: Video delete failed', e);
+        }
+    }
+
+    // ─────────────────────────────────────────────────────────────────────
+
+    // References for active video object URL (to revoke when switching)
+    let activeVideoObjectUrl = null;
+    const videoEl = document.getElementById('video-wallpaper');
 
     // Load saved background or set default
-    chrome.storage.local.get(['wallpaperUrl'], async (result) => {
-        const savedUrl = result.wallpaperUrl || PRESET_WALLPAPERS[0];
-        setWallpaper(savedUrl);
-        
+    chrome.storage.local.get(['wallpaperType', 'wallpaperUrl', 'videoWallpaperId'], async (result) => {
         userWallpapersDB = await getAllWallpapers();
-        renderThumbnails(savedUrl);
+        userVideoWallpapersDB = await getAllVideoWallpapers();
+
+        if (result.wallpaperType === 'video' && result.videoWallpaperId != null) {
+            await setVideoWallpaper(result.videoWallpaperId, false);
+            renderImageThumbnails(result.wallpaperUrl || null);
+            renderVideoThumbnails(result.videoWallpaperId);
+        } else {
+            const savedUrl = result.wallpaperUrl || PRESET_WALLPAPERS[0];
+            setWallpaper(savedUrl, false);
+            renderImageThumbnails(savedUrl);
+            renderVideoThumbnails(null);
+        }
     });
 
     // Toggle picker
@@ -143,6 +271,26 @@ function initWallpaper() {
         if (!toggleBtn.contains(e.target) && !thumbnailsContainer.contains(e.target)) {
             thumbnailsContainer.classList.add('hidden');
         }
+    });
+
+    // Tab switching
+    const tabImage = document.getElementById('wp-tab-image');
+    const tabLive = document.getElementById('wp-tab-live');
+    const sectionImage = document.getElementById('wp-section-image');
+    const sectionLive = document.getElementById('wp-section-live');
+
+    tabImage.addEventListener('click', () => {
+        tabImage.classList.add('active');
+        tabLive.classList.remove('active');
+        sectionImage.style.display = 'flex';
+        sectionLive.style.display = 'none';
+    });
+
+    tabLive.addEventListener('click', () => {
+        tabLive.classList.add('active');
+        tabImage.classList.remove('active');
+        sectionLive.style.display = 'flex';
+        sectionImage.style.display = 'none';
     });
 
     const uploadInput = document.getElementById('wallpaper-upload-input');
@@ -158,20 +306,71 @@ function initWallpaper() {
             userWallpapersDB = await getAllWallpapers();
             
             setWallpaper(base64Url);
-            renderThumbnails(base64Url);
+            renderImageThumbnails(base64Url);
             uploadInput.value = '';
         };
         reader.readAsDataURL(file);
     });
 
-    function setWallpaper(url) {
+    // Video upload handler
+    const videoUploadInput = document.getElementById('video-upload-input');
+    videoUploadInput.addEventListener('change', async (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+
+        const newId = await saveVideoWallpaper(file);
+        userVideoWallpapersDB = await getAllVideoWallpapers();
+
+        if (newId != null) {
+            await setVideoWallpaper(newId);
+            renderVideoThumbnails(newId);
+        }
+        videoUploadInput.value = '';
+    });
+
+
+    function setWallpaper(url, persist = true) {
+        // Hide video wallpaper, restore image background
+        videoEl.style.display = 'none';
+        videoEl.pause();
+        videoEl.src = '';
+        if (activeVideoObjectUrl) {
+            URL.revokeObjectURL(activeVideoObjectUrl);
+            activeVideoObjectUrl = null;
+        }
         bgContainer.style.backgroundImage = `url('${url}')`;
-        chrome.storage.local.set({ wallpaperUrl: url });
+        bgContainer.style.display = '';
+        if (persist) {
+            chrome.storage.local.set({ wallpaperType: 'image', wallpaperUrl: url });
+        }
         updateSelectedThumbnail(url);
     }
 
-    function renderThumbnails(currentUrl) {
-        thumbnailsContainer.innerHTML = '';
+    async function setVideoWallpaper(id, persist = true) {
+        const record = await getVideoWallpaper(id);
+        if (!record) { console.warn('Video wallpaper not found:', id); return; }
+
+        // Revoke previous object URL
+        if (activeVideoObjectUrl) {
+            URL.revokeObjectURL(activeVideoObjectUrl);
+        }
+        activeVideoObjectUrl = URL.createObjectURL(record.blob);
+
+        videoEl.src = activeVideoObjectUrl;
+        videoEl.style.display = 'block';
+        videoEl.play().catch(() => {});
+
+        // Hide static image background
+        bgContainer.style.backgroundImage = 'none';
+
+        if (persist) {
+            chrome.storage.local.set({ wallpaperType: 'video', videoWallpaperId: id });
+        }
+        updateSelectedVideoThumbnail(id);
+    }
+
+    function renderImageThumbnails(currentUrl) {
+        sectionImage.innerHTML = '';
         
         // Add upload button
         const uploadThumb = document.createElement('div');
@@ -182,9 +381,9 @@ function initWallpaper() {
         uploadThumb.addEventListener('click', () => {
             document.getElementById('wallpaper-upload-input').click();
         });
-        thumbnailsContainer.appendChild(uploadThumb);
+        sectionImage.appendChild(uploadThumb);
 
-        // Render user uploads
+        // Render user image uploads
         userWallpapersDB.forEach((record) => {
             const thumb = document.createElement('div');
             thumb.className = 'thumbnail user-thumb';
@@ -203,15 +402,16 @@ function initWallpaper() {
                 e.stopPropagation();
                 await deleteWallpaper(record.id);
                 userWallpapersDB = await getAllWallpapers();
-                renderThumbnails(currentUrl);
+                renderImageThumbnails(currentUrl);
             });
             thumb.appendChild(delBtn);
 
             thumb.addEventListener('click', () => {
                 setWallpaper(record.data);
+                updateSelectedThumbnail(record.data);
             });
             
-            thumbnailsContainer.appendChild(thumb);
+            sectionImage.appendChild(thumb);
         });
 
         PRESET_WALLPAPERS.forEach(url => {
@@ -228,14 +428,85 @@ function initWallpaper() {
                 setWallpaper(url);
             });
 
-            thumbnailsContainer.appendChild(thumb);
+            sectionImage.appendChild(thumb);
+        });
+    }
+
+    function renderVideoThumbnails(currentVideoId) {
+        sectionLive.innerHTML = '';
+
+        // Add video upload button
+        const uploadThumb = document.createElement('div');
+        uploadThumb.className = 'thumbnail upload-btn';
+        uploadThumb.title = 'Upload Video (.mp4 or .webm)';
+        uploadThumb.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="23 7 16 12 23 17 23 7"></polygon><rect x="1" y="5" width="15" height="14" rx="2" ry="2"></rect></svg>';
+        uploadThumb.addEventListener('click', () => {
+            document.getElementById('video-upload-input').click();
+        });
+        sectionLive.appendChild(uploadThumb);
+
+        // Render video thumbnails
+        userVideoWallpapersDB.forEach((record) => {
+            const thumb = document.createElement('div');
+            thumb.className = 'thumbnail user-thumb';
+            thumb.dataset.videoId = record.id;
+            if (record.id === currentVideoId) thumb.classList.add('selected');
+
+            const img = document.createElement('img');
+            img.src = record.thumbnail;
+            thumb.appendChild(img);
+
+            // Play icon overlay
+            const overlay = document.createElement('div');
+            overlay.className = 'video-play-overlay';
+            overlay.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="white" stroke="none"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg>';
+            thumb.appendChild(overlay);
+
+            const delBtn = document.createElement('div');
+            delBtn.className = 'thumb-delete-btn';
+            delBtn.textContent = '×';
+            delBtn.title = 'Remove';
+            delBtn.addEventListener('click', async (e) => {
+                e.stopPropagation();
+                await deleteVideoWallpaper(record.id);
+                userVideoWallpapersDB = await getAllVideoWallpapers();
+                // If we just deleted the active video, fall back gracefully
+                if (record.id === currentVideoId) {
+                    videoEl.style.display = 'none';
+                    videoEl.src = '';
+                    if (activeVideoObjectUrl) {
+                        URL.revokeObjectURL(activeVideoObjectUrl);
+                        activeVideoObjectUrl = null;
+                    }
+                    chrome.storage.local.remove(['wallpaperType', 'videoWallpaperId']);
+                }
+                renderVideoThumbnails(record.id === currentVideoId ? null : currentVideoId);
+            });
+            thumb.appendChild(delBtn);
+
+            thumb.addEventListener('click', () => {
+                setVideoWallpaper(record.id);
+            });
+
+            sectionLive.appendChild(thumb);
         });
     }
 
     function updateSelectedThumbnail(url) {
-        const thumbs = thumbnailsContainer.querySelectorAll('.thumbnail');
+        const thumbs = sectionImage.querySelectorAll('.thumbnail');
         thumbs.forEach((thumb) => {
             if (thumb.dataset.url === url) {
+                thumb.classList.add('selected');
+            } else {
+                thumb.classList.remove('selected');
+            }
+        });
+    }
+
+    function updateSelectedVideoThumbnail(id) {
+        const thumbs = sectionLive.querySelectorAll('.thumbnail');
+        thumbs.forEach((thumb) => {
+            if (Number(thumb.dataset.videoId) === id || thumb.dataset.videoId == id) {
                 thumb.classList.add('selected');
             } else {
                 thumb.classList.remove('selected');
@@ -329,7 +600,7 @@ function initSpeedDial() {
         }
         renderTiles();
     });
-
+    
     function saveAndRender() {
         const tilesToSave = currentTiles.map(t => ({ 
             name: t.name, url: t.url, width: t.width, height: t.height, left: t.left, top: t.top 
