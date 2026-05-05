@@ -549,8 +549,6 @@ function initSpeedDial() {
     document.addEventListener('mousemove', (e) => {
         if (!activeResizeTile) return;
         
-        console.log(activeResizeTile);
-        
         activeResizeTile.style.transition = 'none';
         const newWidth = resizeStartWidth + e.clientX - resizeStartX;
         const newHeight = resizeStartHeight + e.clientY - resizeStartY;
@@ -560,17 +558,17 @@ function initSpeedDial() {
 
         activeResizeTile.style.width = finalWidth + 'px';
         activeResizeTile.style.height = finalHeight + 'px';
-        
-        if (activeResizeIndex >= 0) {
-            currentTiles[activeResizeIndex].width = finalWidth;
-            currentTiles[activeResizeIndex].height = finalHeight;
-        }
     });
 
     window.addEventListener('mouseup', () => {
         if (activeResizeTile) {
             activeResizeTile.style.transition = '';
+            if (activeResizeIndex >= 0) {
+                currentTiles[activeResizeIndex].width = parseInt(activeResizeTile.style.width, 10);
+                currentTiles[activeResizeIndex].height = parseInt(activeResizeTile.style.height, 10);
+            }
             activeResizeTile = null;
+            activeResizeIndex = -1;
             saveAndRender();
         }
     });
