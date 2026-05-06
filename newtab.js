@@ -15,7 +15,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 const PRESET_WALLPAPERS = [
-    
+
     // Abstract
 ];
 
@@ -28,7 +28,7 @@ function initWallpaper() {
         return new Promise((resolve, reject) => {
             console.log('IndexedDB: Opening WallpaperDB v2');
             const request = indexedDB.open('WallpaperDB', 2);
-            
+
             request.onupgradeneeded = (e) => {
                 console.log('IndexedDB: Upgrade needed, creating stores');
                 const db = e.target.result;
@@ -39,12 +39,12 @@ function initWallpaper() {
                     db.createObjectStore('videoWallpapers', { keyPath: 'id', autoIncrement: true });
                 }
             };
-            
+
             request.onsuccess = (e) => {
                 console.log('IndexedDB: Opened successfully');
                 resolve(e.target.result);
             };
-            
+
             request.onerror = (e) => {
                 console.error('IndexedDB: Error opening DB', e);
                 reject(e.target.error);
@@ -62,12 +62,12 @@ function initWallpaper() {
                     canvas.width = 60;
                     canvas.height = 60;
                     const ctx = canvas.getContext('2d');
-                    
+
                     const size = Math.min(img.width, img.height);
                     const sx = (img.width - size) / 2;
                     const sy = (img.height - size) / 2;
                     ctx.drawImage(img, sx, sy, size, size, 0, 0, 60, 60);
-                    
+
                     resolve(canvas.toDataURL('image/jpeg', 0.7));
                 };
                 img.onerror = () => reject(new Error('Failed to load image for thumbnail'));
@@ -79,13 +79,13 @@ function initWallpaper() {
             return new Promise((resolve, reject) => {
                 const tx = db.transaction('wallpapers', 'readwrite');
                 const store = tx.objectStore('wallpapers');
-                
+
                 const request = store.add({
                     data: base64,
                     thumbnail: thumbnail,
                     timestamp: Date.now()
                 });
-                
+
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = (e) => reject(e.target.error);
             });
@@ -102,7 +102,7 @@ function initWallpaper() {
                 const tx = db.transaction('wallpapers', 'readonly');
                 const store = tx.objectStore('wallpapers');
                 const request = store.getAll();
-                
+
                 request.onsuccess = () => resolve(request.result);
                 request.onerror = (e) => reject(e.target.error);
             });
@@ -120,7 +120,7 @@ function initWallpaper() {
                 const tx = db.transaction('wallpapers', 'readwrite');
                 const store = tx.objectStore('wallpapers');
                 const request = store.delete(id);
-                
+
                 request.onsuccess = () => resolve();
                 request.onerror = (e) => reject(e.target.error);
             });
@@ -305,10 +305,10 @@ function initWallpaper() {
         const reader = new FileReader();
         reader.onload = async (event) => {
             const base64Url = event.target.result;
-            
+
             await saveWallpaper(base64Url);
             userWallpapersDB = await getAllWallpapers();
-            
+
             setWallpaper(base64Url);
             renderImageThumbnails(base64Url);
             uploadInput.value = '';
@@ -362,7 +362,7 @@ function initWallpaper() {
 
         videoEl.src = activeVideoObjectUrl;
         videoEl.style.display = 'block';
-        videoEl.play().catch(() => {});
+        videoEl.play().catch(() => { });
 
         // Hide static image background
         bgContainer.style.backgroundImage = 'none';
@@ -375,13 +375,13 @@ function initWallpaper() {
 
     function renderImageThumbnails(currentUrl) {
         sectionImage.innerHTML = '';
-        
+
         // Add upload button
         const uploadThumb = document.createElement('div');
         uploadThumb.className = 'thumbnail upload-btn';
         uploadThumb.title = 'Upload Local Image';
         uploadThumb.innerHTML = '<svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path><polyline points="17 8 12 3 7 8"></polyline><line x1="12" y1="3" x2="12" y2="15"></line></svg>';
-        
+
         uploadThumb.addEventListener('click', () => {
             document.getElementById('wallpaper-upload-input').click();
         });
@@ -393,11 +393,11 @@ function initWallpaper() {
             thumb.className = 'thumbnail user-thumb';
             thumb.dataset.url = record.data;
             if (record.data === currentUrl) thumb.classList.add('selected');
-            
+
             const img = document.createElement('img');
             img.src = record.thumbnail;
             thumb.appendChild(img);
-            
+
             const delBtn = document.createElement('div');
             delBtn.className = 'thumb-delete-btn';
             delBtn.textContent = '×';
@@ -414,7 +414,7 @@ function initWallpaper() {
                 setWallpaper(record.data);
                 updateSelectedThumbnail(record.data);
             });
-            
+
             sectionImage.appendChild(thumb);
         });
 
@@ -569,10 +569,10 @@ function initDockEffect() {
 
         // Check if cursor is within horizontal proximity of the toolbar
         const withinX = e.clientX >= toolbarRect.left - PROXIMITY_PAD &&
-                        e.clientX <= toolbarRect.right + PROXIMITY_PAD;
+            e.clientX <= toolbarRect.right + PROXIMITY_PAD;
         // Check if cursor is within vertical proximity
         const withinY = e.clientY >= toolbarRect.top - PROXIMITY_PAD &&
-                        e.clientY <= toolbarRect.bottom + PROXIMITY_PAD;
+            e.clientY <= toolbarRect.bottom + PROXIMITY_PAD;
 
         if (withinX && withinY) {
             applyMagnification(e.clientY);
@@ -601,6 +601,8 @@ function initToolPanel() {
         notes: 'Quick Notes',
         colorpicker: 'Color Picker',
         qrcode: 'QR Code',
+        unitconverter: 'Unit Converter',
+        imgcompress: 'Image Compressor',
         settings: 'Settings'
     };
 
@@ -617,6 +619,10 @@ function initToolPanel() {
             renderColorPickerPanel();
         } else if (name === 'qrcode') {
             renderQRCodePanel();
+        } else if (name === 'unitconverter') {
+            renderUnitConverterPanel();
+        } else if (name === 'imgcompress') {
+            renderImageCompressPanel();
         }
 
         // Highlight active button
@@ -834,6 +840,397 @@ function initToolPanel() {
         setTimeout(() => input.focus(), 350);
     }
 
+    function renderUnitConverterPanel() {
+        // ── Conversion data ──────────────────────────────────────────────
+        const categories = {
+            Length: {
+                units: ['Meter', 'Kilometer', 'Centimeter', 'Millimeter', 'Mile', 'Yard', 'Foot', 'Inch'],
+                toBase: { Meter: 1, Kilometer: 1000, Centimeter: 0.01, Millimeter: 0.001, Mile: 1609.344, Yard: 0.9144, Foot: 0.3048, Inch: 0.0254 }
+            },
+            Weight: {
+                units: ['Kilogram', 'Gram', 'Milligram', 'Pound', 'Ounce', 'Ton'],
+                toBase: { Kilogram: 1, Gram: 0.001, Milligram: 0.000001, Pound: 0.453592, Ounce: 0.0283495, Ton: 1000 }
+            },
+            Temperature: {
+                units: ['Celsius', 'Fahrenheit', 'Kelvin'],
+                toBase: null
+            },
+            Speed: {
+                units: ['m/s', 'km/h', 'mph', 'knot', 'ft/s'],
+                toBase: { 'm/s': 1, 'km/h': 1 / 3.6, 'mph': 0.44704, 'knot': 0.514444, 'ft/s': 0.3048 }
+            }
+        };
+
+        function convertTemperature(value, from, to) {
+            if (from === to) return value;
+            let celsius;
+            if (from === 'Celsius') celsius = value;
+            else if (from === 'Fahrenheit') celsius = (value - 32) * 5 / 9;
+            else celsius = value - 273.15;
+            if (to === 'Celsius') return celsius;
+            if (to === 'Fahrenheit') return celsius * 9 / 5 + 32;
+            return celsius + 273.15;
+        }
+
+        function convert(value, fromUnit, toUnit, category) {
+            if (isNaN(value) || value === '') return '';
+            const num = parseFloat(value);
+            if (category === 'Temperature') {
+                return parseFloat(convertTemperature(num, fromUnit, toUnit).toPrecision(10));
+            }
+            const cat = categories[category];
+            const baseValue = num * cat.toBase[fromUnit];
+            return parseFloat((baseValue / cat.toBase[toUnit]).toPrecision(10));
+        }
+
+        // ── UI ────────────────────────────────────────────────────────────
+        let currentCategory = 'Length';
+
+        // Category selector
+        const catWrapper = document.createElement('div');
+        catWrapper.className = 'uc-category-wrapper';
+
+        const catLabel = document.createElement('span');
+        catLabel.className = 'uc-label';
+        catLabel.textContent = 'Category';
+
+        const catSelect = document.createElement('select');
+        catSelect.id = 'uc-category-select';
+        Object.keys(categories).forEach(cat => {
+            const opt = document.createElement('option');
+            opt.value = cat;
+            opt.textContent = cat;
+            catSelect.appendChild(opt);
+        });
+        catWrapper.appendChild(catLabel);
+        catWrapper.appendChild(catSelect);
+        panelContent.appendChild(catWrapper);
+
+        // Swap button
+        const swapBtn = document.createElement('button');
+        swapBtn.id = 'uc-swap-btn';
+        swapBtn.title = 'Swap units';
+        swapBtn.innerHTML = '<svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg>';
+
+        const fromRow = createUnitRow('from');
+        const toRow = createUnitRow('to');
+
+        const converterBody = document.createElement('div');
+        converterBody.className = 'uc-body';
+        converterBody.appendChild(fromRow.wrapper);
+        converterBody.appendChild(swapBtn);
+        converterBody.appendChild(toRow.wrapper);
+        panelContent.appendChild(converterBody);
+
+        // Result display
+        const resultDisplay = document.createElement('div');
+        resultDisplay.id = 'uc-result-display';
+        resultDisplay.textContent = 'Enter a value to convert';
+        panelContent.appendChild(resultDisplay);
+
+        // ── Helpers ───────────────────────────────────────────────────────
+        function createUnitRow(prefix) {
+            const wrapper = document.createElement('div');
+            wrapper.className = 'uc-row';
+
+            const input = document.createElement('input');
+            input.type = 'number';
+            input.id = `uc-${prefix}-input`;
+            input.placeholder = '0';
+            input.className = 'uc-input';
+
+            const select = document.createElement('select');
+            select.id = `uc-${prefix}-unit`;
+            select.className = 'uc-unit-select';
+
+            wrapper.appendChild(input);
+            wrapper.appendChild(select);
+            return { wrapper, input, select };
+        }
+
+        function populateUnits() {
+            const units = categories[currentCategory].units;
+            [fromRow.select, toRow.select].forEach((sel, i) => {
+                sel.innerHTML = '';
+                units.forEach(u => {
+                    const opt = document.createElement('option');
+                    opt.value = u;
+                    opt.textContent = u;
+                    sel.appendChild(opt);
+                });
+                sel.selectedIndex = i === 0 ? 0 : Math.min(1, units.length - 1);
+            });
+        }
+
+        function doConvert(direction) {
+            const fromUnit = fromRow.select.value;
+            const toUnit = toRow.select.value;
+
+            if (direction === 'from') {
+                const val = fromRow.input.value;
+                if (val === '' || isNaN(val)) {
+                    toRow.input.value = '';
+                    resultDisplay.textContent = 'Enter a value to convert';
+                    return;
+                }
+                const result = convert(val, fromUnit, toUnit, currentCategory);
+                toRow.input.value = result;
+                resultDisplay.textContent = `${val} ${fromUnit} = ${result} ${toUnit}`;
+            } else {
+                const val = toRow.input.value;
+                if (val === '' || isNaN(val)) {
+                    fromRow.input.value = '';
+                    resultDisplay.textContent = 'Enter a value to convert';
+                    return;
+                }
+                const result = convert(val, toUnit, fromUnit, currentCategory);
+                fromRow.input.value = result;
+                resultDisplay.textContent = `${result} ${fromUnit} = ${val} ${toUnit}`;
+            }
+        }
+
+        // ── Events ────────────────────────────────────────────────────────
+        catSelect.addEventListener('change', () => {
+            currentCategory = catSelect.value;
+            populateUnits();
+            fromRow.input.value = '';
+            toRow.input.value = '';
+            resultDisplay.textContent = 'Enter a value to convert';
+        });
+
+        fromRow.input.addEventListener('input', () => doConvert('from'));
+        toRow.input.addEventListener('input', () => doConvert('to'));
+        fromRow.select.addEventListener('change', () => doConvert('from'));
+        toRow.select.addEventListener('change', () => doConvert('from'));
+
+        swapBtn.addEventListener('click', () => {
+            const tmpUnit = fromRow.select.value;
+            fromRow.select.value = toRow.select.value;
+            toRow.select.value = tmpUnit;
+
+            const tmpVal = fromRow.input.value;
+            fromRow.input.value = toRow.input.value;
+            toRow.input.value = tmpVal;
+
+            if (fromRow.input.value !== '') doConvert('from');
+        });
+
+        // Init
+        populateUnits();
+        setTimeout(() => fromRow.input.focus(), 350);
+    }
+
+    function renderImageCompressPanel() {
+        let originalFile = null;
+        let originalImg = null;
+        let compressedBlob = null;
+
+        // ── Upload zone ──────────────────────────────────────────────────
+        const dropZone = document.createElement('div');
+        dropZone.id = 'ic-drop-zone';
+        dropZone.innerHTML = `
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="17 8 12 3 7 8"></polyline>
+                <line x1="12" y1="3" x2="12" y2="15"></line>
+            </svg>
+            <span class="ic-drop-text">Drop image here or <em>browse</em></span>
+            <span class="ic-drop-hint">PNG, JPG, WebP — any size</span>
+        `;
+
+        const fileInput = document.createElement('input');
+        fileInput.type = 'file';
+        fileInput.accept = 'image/*';
+        fileInput.style.display = 'none';
+
+        panelContent.appendChild(dropZone);
+        panelContent.appendChild(fileInput);
+
+        dropZone.addEventListener('click', () => fileInput.click());
+        dropZone.addEventListener('dragover', (e) => {
+            e.preventDefault();
+            dropZone.classList.add('dragover');
+        });
+        dropZone.addEventListener('dragleave', () => dropZone.classList.remove('dragover'));
+        dropZone.addEventListener('drop', (e) => {
+            e.preventDefault();
+            dropZone.classList.remove('dragover');
+            const file = e.dataTransfer.files[0];
+            if (file && file.type.startsWith('image/')) handleFile(file);
+        });
+        fileInput.addEventListener('change', () => {
+            if (fileInput.files[0]) handleFile(fileInput.files[0]);
+        });
+
+        // ── Preview ──────────────────────────────────────────────────────
+        const previewContainer = document.createElement('div');
+        previewContainer.id = 'ic-preview-container';
+        previewContainer.style.display = 'none';
+
+        const previewImg = document.createElement('img');
+        previewImg.id = 'ic-preview-img';
+        previewContainer.appendChild(previewImg);
+        panelContent.appendChild(previewContainer);
+
+        // ── Quality slider ───────────────────────────────────────────────
+        const controlsWrapper = document.createElement('div');
+        controlsWrapper.id = 'ic-controls';
+        controlsWrapper.style.display = 'none';
+
+        const qualityHeader = document.createElement('div');
+        qualityHeader.className = 'ic-quality-header';
+
+        const qualityLabel = document.createElement('span');
+        qualityLabel.className = 'ic-label';
+        qualityLabel.textContent = 'Quality';
+
+        const qualityValue = document.createElement('span');
+        qualityValue.id = 'ic-quality-value';
+        qualityValue.textContent = '80%';
+
+        qualityHeader.appendChild(qualityLabel);
+        qualityHeader.appendChild(qualityValue);
+
+        const slider = document.createElement('input');
+        slider.type = 'range';
+        slider.id = 'ic-quality-slider';
+        slider.min = '1';
+        slider.max = '100';
+        slider.value = '80';
+
+        controlsWrapper.appendChild(qualityHeader);
+        controlsWrapper.appendChild(slider);
+        panelContent.appendChild(controlsWrapper);
+
+        // ── Stats ────────────────────────────────────────────────────────
+        const statsWrapper = document.createElement('div');
+        statsWrapper.id = 'ic-stats';
+        statsWrapper.style.display = 'none';
+
+        const statOriginal = createStatRow('Original', 'ic-stat-original');
+        const statCompressed = createStatRow('Compressed', 'ic-stat-compressed');
+        const statSavings = createStatRow('Savings', 'ic-stat-savings');
+
+        statsWrapper.appendChild(statOriginal.row);
+        statsWrapper.appendChild(statCompressed.row);
+        statsWrapper.appendChild(statSavings.row);
+        panelContent.appendChild(statsWrapper);
+
+        // ── Download button ──────────────────────────────────────────────
+        const downloadBtn = document.createElement('button');
+        downloadBtn.id = 'ic-download-btn';
+        downloadBtn.style.display = 'none';
+        downloadBtn.innerHTML = `
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                <polyline points="7 10 12 15 17 10"></polyline>
+                <line x1="12" y1="15" x2="12" y2="3"></line>
+            </svg>
+            Download Compressed
+        `;
+        panelContent.appendChild(downloadBtn);
+
+        // ── Helpers ───────────────────────────────────────────────────────
+        function createStatRow(label, id) {
+            const row = document.createElement('div');
+            row.className = 'ic-stat-row';
+
+            const labelSpan = document.createElement('span');
+            labelSpan.className = 'ic-stat-label';
+            labelSpan.textContent = label;
+
+            const valueSpan = document.createElement('span');
+            valueSpan.className = 'ic-stat-value';
+            valueSpan.id = id;
+            valueSpan.textContent = '—';
+
+            row.appendChild(labelSpan);
+            row.appendChild(valueSpan);
+            return { row, valueSpan };
+        }
+
+        function formatSize(bytes) {
+            if (bytes < 1024) return bytes + ' B';
+            if (bytes < 1024 * 1024) return (bytes / 1024).toFixed(1) + ' KB';
+            return (bytes / (1024 * 1024)).toFixed(2) + ' MB';
+        }
+
+        function handleFile(file) {
+            originalFile = file;
+            const reader = new FileReader();
+            reader.onload = (e) => {
+                const img = new Image();
+                img.onload = () => {
+                    originalImg = img;
+                    previewContainer.style.display = '';
+                    controlsWrapper.style.display = '';
+                    statsWrapper.style.display = '';
+                    dropZone.style.display = 'none';
+                    compress();
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function compress() {
+            if (!originalImg) return;
+            const quality = parseInt(slider.value, 10) / 100;
+
+            const canvas = document.createElement('canvas');
+            canvas.width = originalImg.naturalWidth;
+            canvas.height = originalImg.naturalHeight;
+            const ctx = canvas.getContext('2d');
+            ctx.drawImage(originalImg, 0, 0);
+
+            canvas.toBlob((blob) => {
+                compressedBlob = blob;
+
+                // Update preview
+                const url = URL.createObjectURL(blob);
+                previewImg.onload = () => URL.revokeObjectURL(url);
+                previewImg.src = url;
+
+                // Update stats
+                const origSize = originalFile.size;
+                const compSize = blob.size;
+                const saved = origSize - compSize;
+                const pct = origSize > 0 ? ((saved / origSize) * 100).toFixed(1) : 0;
+
+                statOriginal.valueSpan.textContent = formatSize(origSize);
+                statCompressed.valueSpan.textContent = formatSize(compSize);
+
+                if (saved > 0) {
+                    statSavings.valueSpan.textContent = `−${formatSize(saved)} (${pct}%)`;
+                    statSavings.valueSpan.style.color = '#4ade80';
+                } else {
+                    statSavings.valueSpan.textContent = `+${formatSize(Math.abs(saved))} (larger)`;
+                    statSavings.valueSpan.style.color = '#f87171';
+                }
+
+                downloadBtn.style.display = '';
+            }, 'image/jpeg', quality);
+        }
+
+        // ── Events ────────────────────────────────────────────────────────
+        let sliderDebounce = null;
+        slider.addEventListener('input', () => {
+            qualityValue.textContent = slider.value + '%';
+            clearTimeout(sliderDebounce);
+            sliderDebounce = setTimeout(() => compress(), 100);
+        });
+
+        downloadBtn.addEventListener('click', () => {
+            if (!compressedBlob) return;
+            const link = document.createElement('a');
+            const baseName = originalFile.name.replace(/\.[^.]+$/, '');
+            link.download = `${baseName}_compressed.jpg`;
+            link.href = URL.createObjectURL(compressedBlob);
+            link.click();
+            setTimeout(() => URL.revokeObjectURL(link.href), 1000);
+        });
+    }
+
     function closePanel() {
         activePanel = null;
         panel.classList.remove('open');
@@ -900,11 +1297,11 @@ function initSpeedDial() {
     // Global resize listeners
     document.addEventListener('mousemove', (e) => {
         if (!activeResizeTile) return;
-        
+
         activeResizeTile.style.transition = 'none';
         const newWidth = resizeStartWidth + e.clientX - resizeStartX;
         const newHeight = resizeStartHeight + e.clientY - resizeStartY;
-        
+
         const finalWidth = Math.max(200, Math.min(newWidth, 500));
         const finalHeight = Math.max(80, newHeight);
 
@@ -929,7 +1326,7 @@ function initSpeedDial() {
     chrome.storage.local.get(['siteTiles'], (result) => {
         currentTiles = result.siteTiles || [];
         let needsSave = false;
-        
+
         if (currentTiles.length === 0) {
             currentTiles = [...DEFAULT_TILES];
             needsSave = true;
@@ -950,10 +1347,10 @@ function initSpeedDial() {
         }
         renderTiles();
     });
-    
+
     function saveAndRender() {
-        const tilesToSave = currentTiles.map(t => ({ 
-            name: t.name, url: t.url, width: t.width, height: t.height, left: t.left, top: t.top 
+        const tilesToSave = currentTiles.map(t => ({
+            name: t.name, url: t.url, width: t.width, height: t.height, left: t.left, top: t.top
         }));
         chrome.storage.local.set({ siteTiles: tilesToSave }, () => {
             renderTiles();
@@ -989,11 +1386,11 @@ function initSpeedDial() {
                 if (e.target.closest('.resize-handle') || e.target.closest('.delete-btn')) {
                     return;
                 }
-                
+
                 e.preventDefault();
                 isMouseDown = true;
                 isDragging = false;
-                
+
                 startMouseX = e.clientX;
                 startMouseY = e.clientY;
                 startLeft = parseInt(a.style.left || 0, 10);
@@ -1001,15 +1398,15 @@ function initSpeedDial() {
 
                 const doDrag = (eMove) => {
                     if (!isMouseDown) return;
-                    
+
                     const dx = eMove.clientX - startMouseX;
                     const dy = eMove.clientY - startMouseY;
-                    
+
                     if (!isDragging && (Math.abs(dx) > 5 || Math.abs(dy) > 5)) {
                         isDragging = true;
                         a.classList.add('dragging');
                     }
-                    
+
                     if (isDragging) {
                         eMove.preventDefault();
                         a.style.left = (startLeft + dx) + 'px';
@@ -1021,13 +1418,13 @@ function initSpeedDial() {
                     isMouseDown = false;
                     document.removeEventListener('mousemove', doDrag);
                     document.removeEventListener('mouseup', stopDrag);
-                    
+
                     if (isDragging) {
                         a.classList.remove('dragging');
                         currentTiles[index].left = parseInt(a.style.left, 10);
                         currentTiles[index].top = parseInt(a.style.top, 10);
                         saveAndRender();
-                        
+
                         setTimeout(() => {
                             isDragging = false;
                         }, 50);
@@ -1116,9 +1513,9 @@ function initSpeedDial() {
             const resizeHandle = document.createElement('div');
             resizeHandle.className = 'resize-handle';
             resizeHandle.innerHTML = '<svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="13 21 21 21 21 13"></polyline><line x1="21" y1="21" x2="10" y2="10"></line></svg>';
-            
+
             attachResizeListener(a, resizeHandle, index);
-            
+
             a.appendChild(resizeHandle);
 
             container.appendChild(a);
@@ -1129,11 +1526,11 @@ function initSpeedDial() {
         handleElement.addEventListener('mousedown', (e) => {
             e.preventDefault();
             e.stopPropagation();
-            
+
             tileElement.dataset.isResizing = 'true';
             activeResizeTile = tileElement;
             activeResizeIndex = index;
-            
+
             resizeStartX = e.clientX;
             resizeStartY = e.clientY;
             resizeStartWidth = parseInt(document.defaultView.getComputedStyle(activeResizeTile).width, 10);
